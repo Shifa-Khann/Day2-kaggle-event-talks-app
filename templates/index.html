@@ -30,7 +30,13 @@
                 </div>
             </div>
             
-            <div class="header-actions">
+            <div class="header-actions" style="display: flex; gap: 0.75rem;">
+                <button id="theme-toggle-btn" class="btn btn-secondary" title="Toggle color theme">
+                    <span class="btn-icon">
+                        <i class="fa-solid fa-moon" id="theme-toggle-icon"></i>
+                    </span>
+                    <span class="btn-text" id="theme-toggle-text">Dark Mode</span>
+                </button>
                 <button id="refresh-btn" class="btn btn-primary" title="Fetch latest release notes">
                     <span class="btn-icon">
                         <i class="fa-solid fa-rotate-right" id="refresh-icon"></i>

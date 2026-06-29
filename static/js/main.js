@@ -22,6 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusBadge = document.getElementById('status-badge');
     const exportCsvBtn = document.getElementById('export-csv-btn');
 
+    // Theme Toggle Elements
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const themeToggleIcon = document.getElementById('theme-toggle-icon');
+    const themeToggleText = document.getElementById('theme-toggle-text');
+
     // Tweet Modal Elements
     const tweetModal = document.getElementById('tweet-modal');
     const tweetTextarea = document.getElementById('tweet-textarea');
@@ -31,11 +36,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const postTweetBtn = document.getElementById('post-tweet-btn');
     const modalCloseBtn = document.getElementById('modal-close-btn');
 
+    // Theme Initialization
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    if (currentTheme === 'light') {
+        document.body.classList.add('light-theme');
+        themeToggleIcon.className = 'fa-solid fa-sun';
+        themeToggleText.textContent = 'Light Mode';
+    }
+
     // Initial Load
     fetchReleaseNotes(false);
 
     // Event Listeners
     refreshBtn.addEventListener('click', () => fetchReleaseNotes(true));
+    
+    themeToggleBtn.addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+        
+        let theme = 'dark';
+        if (document.body.classList.contains('light-theme')) {
+            theme = 'light';
+            themeToggleIcon.className = 'fa-solid fa-sun';
+            themeToggleText.textContent = 'Light Mode';
+        } else {
+            themeToggleIcon.className = 'fa-solid fa-moon';
+            themeToggleText.textContent = 'Dark Mode';
+        }
+        
+        localStorage.setItem('theme', theme);
+    });
     
     searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value.toLowerCase().trim();
