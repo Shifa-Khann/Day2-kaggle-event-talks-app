@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Viewer</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>BigQuery</h1>
+                    <span>Release Hub</span>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button id="refresh-btn" class="btn btn-primary" title="Fetch latest release notes">
+                    <span class="btn-icon">
+                        <i class="fa-solid fa-rotate-right" id="refresh-icon"></i>
+                    </span>
+                    <span class="btn-text">Refresh Feed</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <main class="app-content">
+            
+            <!-- Sidebar / Control Panel -->
+            <aside class="control-panel">
+                <div class="panel-section">
+                    <h3>Search</h3>
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search release notes...">
+                        <button id="search-clear-btn" class="search-clear-btn" style="display: none;">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>Filter by Type</h3>
+                    <div class="filter-group" id="filter-container">
+                        <!-- Filters will be generated dynamically by JavaScript -->
+                        <button class="filter-btn active" data-type="all">
+                            <span class="filter-dot all"></span>
+                            <span class="filter-label">All Updates</span>
+                            <span class="filter-count" id="count-all">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section info-card">
+                    <div class="info-card-header">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <h4>About this feed</h4>
+                    </div>
+                    <p>This viewer aggregates Google Cloud BigQuery release notes retrieved directly from the official feed. You can explore features, changes, and deprecations, and draft tweets to share updates.</p>
+                </div>
+            </aside>
+
+            <!-- Release Notes Stream -->
+            <section class="stream-container">
+                <div class="stream-header">
+                    <div class="stream-title-info">
+                        <h2>Release Stream</h2>
+                        <span id="results-count">Showing 0 updates</span>
+                    </div>
+                    <div class="stream-sorting">
+                        <label for="sort-select">Sort:</label>
+                        <select id="sort-select" class="form-select">
+                            <option value="newest" selected>Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Skeleton Loader -->
+                <div id="skeleton-container" class="skeleton-container">
+                    <div class="skeleton-card">
+                        <div class="skeleton-header">
+                            <div class="skeleton-date"></div>
+                            <div class="skeleton-badge"></div>
+                        </div>
+                        <div class="skeleton-body">
+                            <div class="skeleton-line wide"></div>
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line medium"></div>
+                        </div>
+                        <div class="skeleton-footer"></div>
+                    </div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-header">
+                            <div class="skeleton-date"></div>
+                            <div class="skeleton-badge"></div>
+                        </div>
+                        <div class="skeleton-body">
+                            <div class="skeleton-line wide"></div>
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line medium"></div>
+                        </div>
+                        <div class="skeleton-footer"></div>
+                    </div>
+                </div>
+
+                <!-- Actual Feed Cards -->
+                <div id="notes-container" class="notes-container" style="display: none;"></div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <div class="empty-state-icon">
+                        <i class="fa-solid fa-magnifying-glass-minus"></i>
+                    </div>
+                    <h3>No matching updates found</h3>
+                    <p>Try clearing your search query or adjusting your filters to find what you are looking for.</p>
+                    <button id="reset-filters-btn" class="btn btn-secondary">Reset Filters</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-left">
+                <span>Feed Status: <span id="status-badge" class="status-badge online">Live</span></span>
+                <span class="divider">|</span>
+                <span id="last-updated-text">Last Checked: Just now</span>
+            </div>
+            <div class="footer-right">
+                <span>BigQuery Release Viewer &copy; 2026</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Tweet Composer Modal -->
+    <div id="tweet-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-brands fa-x-twitter"></i> Compose Update Post</h3>
+                <button class="modal-close" id="modal-close-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="tweet-card-preview">
+                    <div class="preview-tag">Draft Preview</div>
+                    <div class="tweet-composer-container">
+                        <textarea id="tweet-textarea" rows="6" maxlength="280"></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions-container">
+                    <div class="char-count-status">
+                        <span id="char-counter">0</span> / 280
+                        <div class="char-bar-bg">
+                            <div id="char-bar-fill" class="char-bar-fill"></div>
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="cancel-tweet-btn" class="btn btn-secondary">Cancel</button>
+                        <button id="post-tweet-btn" class="btn btn-twitter">
+                            <i class="fa-brands fa-x-twitter"></i> Post on X
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
