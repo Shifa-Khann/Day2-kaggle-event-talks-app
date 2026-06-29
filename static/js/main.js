@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sort-select');
     const lastUpdatedText = document.getElementById('last-updated-text');
     const statusBadge = document.getElementById('status-badge');
+    const exportCsvBtn = document.getElementById('export-csv-btn');
 
     // Tweet Modal Elements
     const tweetModal = document.getElementById('tweet-modal');
@@ -56,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     resetFiltersBtn.addEventListener('click', resetFilters);
+    exportCsvBtn.addEventListener('click', exportToCSV);
 
     // Modal Events
     cancelTweetBtn.addEventListener('click', closeTweetModal);
@@ -272,11 +274,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 <a href="${note.link}" target="_blank" rel="noopener" class="note-deep-link">
                     Official Release Notes <i class="fa-solid fa-arrow-up-right-from-square"></i>
                 </a>
-                <button class="btn btn-secondary btn-sm tweet-trigger" data-id="${note.id}">
-                    <i class="fa-brands fa-x-twitter"></i> Tweet Update
-                </button>
+                <div class="action-buttons-group" style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary btn-sm copy-trigger" data-id="${note.id}">
+                        <i class="fa-regular fa-copy"></i> Copy
+                    </button>
+                    <button class="btn btn-secondary btn-sm tweet-trigger" data-id="${note.id}">
+                        <i class="fa-brands fa-x-twitter"></i> Tweet
+                    </button>
+                </div>
             </div>
         `;
+
+        // Attach listener to copy trigger
+        const copyBtn = card.querySelector('.copy-trigger');
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(note.content_text);
+                
+                // Show success feedback
+                const originalHTML = copyBtn.innerHTML;
+                copyBtn.innerHTML = `<i class="fa-solid fa-check" style="color: var(--color-feature)"></i> Copied!`;
+                copyBtn.disabled = true;
+                
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalHTML;
+                    copyBtn.disabled = false;
+                }, 1500);
+            } catch (err) {
+                console.error('Failed to copy text:', err);
+                showErrorToast('Could not copy to clipboard');
+            }
+        });
 
         // Attach listener to tweet trigger
         card.querySelector('.tweet-trigger').addEventListener('click', () => {
@@ -419,5 +447,89 @@ document.addEventListener('DOMContentLoaded', () => {
             toast.style.opacity = '0';
             setTimeout(() => toast.remove(), 500);
         }, 4000);
+    }
+
+    function exportToCSV() {
+        if (!releaseNotes || releaseNotes.length === 0) {
+            showErrorToast('No notes available to export.');
+            return;
+        }
+
+        // We export the currently filtered notes
+        let notesToExport = [...releaseNotes];
+        
+        // 1. Filter by category
+        if (activeFilter !== 'all') {
+            notesToExport = notesToExport.filter(note => (note.type || 'Info') === activeFilter);
+        }
+
+        // 2. Filter by search query
+        if (searchQuery) {
+            notesToExport = notesToExport.filter(note => {
+                const dateMatch = note.date.toLowerCase().includes(searchQuery);
+                const typeMatch = note.type.toLowerCase().includes(searchQuery);
+                const contentMatch = note.content_text.toLowerCase().includes(searchQuery);
+                return dateMatch || typeMatch || contentMatch;
+            });
+        }
+
+        // 3. Sort items
+        notesToExport.sort((a, b) => {
+            const dateA = new Date(a.updated || a.date);
+            const dateB = new Date(b.updated || b.date);
+            if (sortOrder === 'newest') {
+                return dateB - dateA;
+            } else {
+                return dateA - dateB;
+            }
+        });
+
+        if (notesToExport.length === 0) {
+            showErrorToast('No matching notes to export.');
+            return;
+        }
+
+        // Generate CSV content
+        // Header
+        const headers = ['Date', 'Type', 'Content', 'Link'];
+        
+        const csvRows = [
+            headers.join(',')
+        ];
+
+        for (const note of notesToExport) {
+            const dateVal = escapeCsvField(note.date);
+            const typeVal = escapeCsvField(note.type);
+            const contentVal = escapeCsvField(note.content_text);
+            const linkVal = escapeCsvField(note.link);
+            
+            csvRows.push(`${dateVal},${typeVal},${contentVal},${linkVal}`);
+        }
+
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `bigquery-release-notes-${activeFilter}-${sortOrder}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    function escapeCsvField(val) {
+        if (val === undefined || val === null) {
+            return '""';
+        }
+        let str = String(val);
+        if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+            str = str.replace(/"/g, '""');
+            return `"${str}"`;
+        }
+        return `"${str}"`;
     }
 });
